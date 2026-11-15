@@ -44,47 +44,36 @@ function Roller() {
   );
 }
 
-type Step = 'email' | 'code' | 'password';
+type Mode = 'signup' | 'signin';
 
 export default function Login() {
-  const [step, setStep] = useState<Step>('email');
+  const [mode, setMode] = useState<Mode>('signup');
   const [email, setEmail] = useState('');
-  const [code, setCode] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const signup = mode === 'signup';
 
-  const run = async (fn: () => Promise<string | void>) => {
+  const submit = async () => {
     setError('');
+    if (!isConfigured) return setError('Supabase keys are missing. See README: EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY.');
+    if (!/^\S+@\S+\.\S+$/.test(email.trim())) return setError('Enter a valid email address.');
+    if (password.length < 6) return setError('Your password needs at least 6 characters.');
     setBusy(true);
-    try {
-      const msg = await fn();
-      if (msg) setError(msg);
-    } finally {
-      setBusy(false);
+    const { data, error } = signup
+      ? await supabase.auth.signUp({ email: email.trim(), password })
+      : await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    setBusy(false);
+    if (error) {
+      if (/already registered/i.test(error.message)) {
+        setMode('signin');
+        return setError('You already have an account. Sign in instead.');
+      }
+      if (/invalid login/i.test(error.message)) return setError('Wrong email or password.');
+      return setError(error.message);
     }
+    if (signup && !data.session) setError('Account created, but Supabase is asking for email confirmation. Turn off “Confirm email” in Supabase, then sign in.');
   };
-
-  const sendCode = () =>
-    run(async () => {
-      if (!isConfigured) return 'Supabase keys are missing. See README: EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY.';
-      if (!/^\S+@\S+\.\S+$/.test(email.trim())) return 'Enter a valid email address.';
-      const { error } = await supabase.auth.signInWithOtp({ email: email.trim(), options: { shouldCreateUser: true } });
-      if (error) return error.message;
-      setStep('code');
-    });
-
-  const verify = () =>
-    run(async () => {
-      const { error } = await supabase.auth.verifyOtp({ email: email.trim(), token: code.trim(), type: 'email' });
-      if (error) return 'That code didn’t work. Check it or send a new one.';
-    });
-
-  const withPassword = () =>
-    run(async () => {
-      const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-      if (error) return error.message;
-    });
 
   return (
     <View style={{ flex: 1, backgroundColor: C.sky }}>
@@ -111,40 +100,25 @@ export default function Login() {
             </Animated.View>
 
             <Animated.View entering={FadeInDown.duration(700).delay(600).easing(EASE)} style={s.card}>
-              <Animated.View key={step} entering={FadeInDown.duration(350)} exiting={FadeOut.duration(120)} style={{ gap: 14 }}>
-                {step === 'email' && (
-                  <>
-                    <Text style={s.cardTitle}>Start your map</Text>
-                    <Text style={s.cardText}>Sign in with your email. We’ll send you a code, no password needed.</Text>
-                    <Field label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" autoComplete="email" keyboardType="email-address" textContentType="emailAddress" placeholder="you@example.com" returnKeyType="send" onSubmitEditing={sendCode} />
-                    <Button title="Send me a code" onPress={sendCode} busy={busy} />
-                    <Pressable onPress={() => setStep('password')} hitSlop={8}>
-                      <Text style={s.link}>Sign in with a password instead</Text>
-                    </Pressable>
-                  </>
-                )}
-                {step === 'code' && (
-                  <>
-                    <Text style={s.cardTitle}>Check your inbox</Text>
-                    <Text style={s.cardText}>We sent a code to {email.trim()}.</Text>
-                    <Field label="Code" value={code} onChangeText={(t) => setCode(t.replace(/\D/g, ''))} keyboardType="number-pad" textContentType="oneTimeCode" autoComplete="one-time-code" maxLength={10} style={s.codeInput} autoFocus />
-                    <Button title="Sign in" onPress={verify} busy={busy} />
-                    <Pressable onPress={() => { setStep('email'); setCode(''); }} hitSlop={8}>
-                      <Text style={s.link}>Use a different email</Text>
-                    </Pressable>
-                  </>
-                )}
-                {step === 'password' && (
-                  <>
-                    <Text style={s.cardTitle}>Sign in</Text>
-                    <Field label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" />
-                    <Field label="Password" value={password} onChangeText={setPassword} secureTextEntry autoComplete="current-password" onSubmitEditing={withPassword} />
-                    <Button title="Sign in" onPress={withPassword} busy={busy} />
-                    <Pressable onPress={() => setStep('email')} hitSlop={8}>
-                      <Text style={s.link}>Get an email code instead</Text>
-                    </Pressable>
-                  </>
-                )}
+              <Animated.View key={mode} entering={FadeInDown.duration(350)} exiting={FadeOut.duration(120)} style={{ gap: 14 }}>
+                <Text style={s.cardTitle}>{signup ? 'Start your map' : 'Welcome back'}</Text>
+                <Text style={s.cardText}>{signup ? 'Create an account to save your connections. They’re private to you.' : 'Sign in to see your map.'}</Text>
+                <Field label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" autoComplete="email" keyboardType="email-address" textContentType="emailAddress" placeholder="you@example.com" />
+                <Field
+                  label="Password"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry
+                  autoComplete={signup ? 'new-password' : 'current-password'}
+                  textContentType={signup ? 'newPassword' : 'password'}
+                  placeholder={signup ? 'At least 6 characters' : ''}
+                  returnKeyType="go"
+                  onSubmitEditing={submit}
+                />
+                <Button title={signup ? 'Create account' : 'Sign in'} onPress={submit} busy={busy} />
+                <Pressable onPress={() => { setMode(signup ? 'signin' : 'signup'); setError(''); }} hitSlop={8}>
+                  <Text style={s.link}>{signup ? 'Already have an account? Sign in' : 'New here? Create an account'}</Text>
+                </Pressable>
                 {error ? (
                   <Animated.Text entering={FadeIn} style={s.error} accessibilityRole="alert">
                     {error}
@@ -174,7 +148,6 @@ const s = StyleSheet.create({
   card: { marginTop: 32, backgroundColor: C.white, borderRadius: 24, padding: 22 },
   cardTitle: { fontFamily: F.display, fontSize: 32, color: C.ink, textTransform: 'uppercase' },
   cardText: { fontFamily: F.regular, fontSize: 16, lineHeight: 23, color: C.ink2 },
-  codeInput: { fontSize: 24, letterSpacing: 8, textAlign: 'center', fontFamily: F.bold },
   link: { fontFamily: F.semibold, fontSize: 15, color: C.skyInk, textAlign: 'center', paddingVertical: 6 },
   error: { fontFamily: F.semibold, fontSize: 15, color: C.redInk },
 });

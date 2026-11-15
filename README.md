@@ -10,23 +10,18 @@ One repo, three parts, sharing one Supabase database:
 | `mobile/` | iPhone app (Expo / React Native) | App Store, via Expo's cloud build |
 | `supabase/` | Database setup (`schema.sql`) | Supabase |
 
-Sign-in is by email code (no passwords). Each person only ever sees their own connections; that's enforced in the database (Row Level Security), not just in the app.
+Sign-in is email + password, with no confirmation emails. Each person only ever sees their own connections; that's enforced in the database (Row Level Security), not just in the app.
 
 ---
 
 ## 1. Supabase (5 min)
 
 1. **Create the table.** Supabase project → **SQL Editor** → New query → paste all of [`supabase/schema.sql`](supabase/schema.sql) → **Run**.
-2. **Make the login email send a code.** **Authentication → Emails → Templates**. In both **Magic Link** and **Confirm signup**, add this line to the message body:
-   ```
-   Your Kizuna code: {{ .Token }}
-   ```
+2. **Turn off email confirmation.** **Authentication → Sign In / Providers → Email** → switch **Confirm email** off → Save. Kizuna uses email + password, so people are signed in right away and no emails are ever sent.
 3. **Site URL.** **Authentication → URL Configuration** → set Site URL to your Vercel address (after step 2 below).
 4. **Copy your keys** (click **Connect** at the top of the project, or **Project Settings → API Keys**):
    - Project URL, like `https://abcd1234.supabase.co`
    - Publishable key, like `sb_publishable_…` (older projects call it the *anon* key; either works)
-
-> Supabase's built-in email sender only allows a few emails per hour. That's fine for testing. Before launch, connect your own email provider under **Authentication → Emails → SMTP Settings** (Resend, Postmark, etc.).
 
 ## 2. Website on Vercel (3 min)
 
@@ -78,7 +73,7 @@ Then in **App Store Connect**:
 - The build appears under **TestFlight** first. Install it on your phone and check it.
 - Fill in the listing: name, description, screenshots, and **Privacy Policy URL** = `https://YOUR-SITE.vercel.app/privacy`.
 - **App Privacy:** you collect *Email address* (for sign-in) and *User content* (the connections). Not used for tracking, linked to the user.
-- **Review notes:** Apple's reviewer can't receive your email codes. In Supabase → **Authentication → Users → Add user**, create `review@yourdomain.com` with a password, tick *Auto Confirm*, and give those details to Apple. The login screen has a "Sign in with a password instead" link for this.
+- **Review notes:** create a demo account for Apple's reviewer (sign up in the app with e.g. `review@appkollab.com` and a password, add a few connections) and give them the email and password.
 - Submit for review (usually 1–3 days).
 
 The bundle ID is `com.guyfromhanoi.kizuna` (in `mobile/app.json`). Change it before your first build if you want; it can't be changed after.

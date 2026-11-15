@@ -3,106 +3,68 @@
 import { useState } from "react";
 import { getSupabase } from "@/lib/supabase";
 
-type Step = "email" | "code" | "password";
+type Mode = "signup" | "signin";
 
 export default function Login() {
-  const [step, setStep] = useState<Step>("email");
+  const [mode, setMode] = useState<Mode>("signup");
   const [email, setEmail] = useState("");
-  const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  async function sendCode(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    if (!/^\S+@\S+\.\S+$/.test(email)) return setError("Enter a valid email address.");
+    if (!/^\S+@\S+\.\S+$/.test(email.trim())) return setError("Enter a valid email address.");
+    if (password.length < 6) return setError("Your password needs at least 6 characters.");
     setBusy(true);
-    const { error } = await getSupabase().auth.signInWithOtp({ email: email.trim(), options: { shouldCreateUser: true } });
+    const auth = getSupabase().auth;
+    const { data, error } =
+      mode === "signup"
+        ? await auth.signUp({ email: email.trim(), password })
+        : await auth.signInWithPassword({ email: email.trim(), password });
     setBusy(false);
-    if (error) return setError(error.message);
-    setStep("code");
+    if (error) {
+      if (/already registered/i.test(error.message)) {
+        setMode("signin");
+        return setError("You already have an account. Sign in instead.");
+      }
+      if (/invalid login/i.test(error.message)) return setError("Wrong email or password.");
+      return setError(error.message);
+    }
+    // If "Confirm email" is still on in Supabase, sign-up returns no session.
+    if (mode === "signup" && !data.session) {
+      setError("Account created, but Supabase is asking for email confirmation. Turn off “Confirm email” in Supabase, then sign in.");
+    }
   }
 
-  async function verify(e: React.FormEvent) {
-    e.preventDefault();
-    setError("");
-    setBusy(true);
-    const { error } = await getSupabase().auth.verifyOtp({ email: email.trim(), token: code.trim(), type: "email" });
-    setBusy(false);
-    if (error) setError("That code didn’t work. Check it or send a new one.");
-  }
-
-  async function withPassword(e: React.FormEvent) {
-    e.preventDefault();
-    setError("");
-    setBusy(true);
-    const { error } = await getSupabase().auth.signInWithPassword({ email: email.trim(), password });
-    setBusy(false);
-    if (error) setError(error.message);
-  }
+  const signup = mode === "signup";
 
   return (
     <div className="card login a">
-      <div key={step} className="swap">
-        {step === "email" && (
-          <>
-            <h1>Start your map</h1>
-            <p>Sign in with your email. We’ll send you a code, no password needed. Your connections are private to you.</p>
-            <form onSubmit={sendCode}>
-              <label className="field-label" htmlFor="email">
-                Email
-              </label>
-              <input id="email" className="input" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
-              <button className="btn btn-red" disabled={busy}>
-                {busy ? <span className="spinner" aria-label="Sending" /> : "Send me a code"}
-              </button>
-            </form>
-            <button type="button" className="link-btn" onClick={() => setStep("password")}>
-              Sign in with a password instead
-            </button>
-          </>
-        )}
-
-        {step === "code" && (
-          <>
-            <h1>Check your inbox</h1>
-            <p>
-              We sent a code to <strong>{email}</strong>. Enter it below.
-            </p>
-            <form onSubmit={verify}>
-              <label className="field-label" htmlFor="code">
-                Code
-              </label>
-              <input id="code" className="input code-input" inputMode="numeric" autoComplete="one-time-code" maxLength={10} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} />
-              <button className="btn btn-red" disabled={busy || code.length < 6}>
-                {busy ? <span className="spinner" aria-label="Checking" /> : "Sign in"}
-              </button>
-            </form>
-            <button type="button" className="link-btn" onClick={() => { setStep("email"); setCode(""); }}>
-              Use a different email
-            </button>
-          </>
-        )}
-
-        {step === "password" && (
-          <>
-            <h1>Sign in</h1>
-            <form onSubmit={withPassword}>
-              <label className="field-label" htmlFor="email2">Email</label>
-              <input id="email2" className="input" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-              <label className="field-label" htmlFor="pw">Password</label>
-              <input id="pw" className="input" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
-              <button className="btn btn-red" disabled={busy}>
-                {busy ? <span className="spinner" aria-label="Signing in" /> : "Sign in"}
-              </button>
-            </form>
-            <button type="button" className="link-btn" onClick={() => setStep("email")}>
-              Get an email code instead
-            </button>
-          </>
-        )}
-
+      <div key={mode} className="swap">
+        <h1>{signup ? "Start your map" : "Welcome back"}</h1>
+        <p>{signup ? "Create an account to save your connections. They’re private to you." : "Sign in to see your map."}</p>
+        <form onSubmit={submit}>
+          <label className="field-label" htmlFor="email">Email</label>
+          <input id="email" className="input" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
+          <label className="field-label" htmlFor="pw">Password</label>
+          <input
+            id="pw"
+            className="input"
+            type="password"
+            autoComplete={signup ? "new-password" : "current-password"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder={signup ? "At least 6 characters" : ""}
+          />
+          <button className="btn btn-red" disabled={busy}>
+            {busy ? <span className="spinner" aria-label="Please wait" /> : signup ? "Create account" : "Sign in"}
+          </button>
+        </form>
+        <button type="button" className="link-btn" onClick={() => { setMode(signup ? "signin" : "signup"); setError(""); }}>
+          {signup ? "Already have an account? Sign in" : "New here? Create an account"}
+        </button>
         {error && (
           <p className="hint err" role="alert">
             {error}
