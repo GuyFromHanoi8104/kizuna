@@ -21,7 +21,7 @@ There is no password: sign-up is three short steps (name → where you’re from
 3. **Allow linking.** Same page (**Sign In / Providers**) → switch on **Allow manual linking**. This lets a guest connect Apple or Google later without losing their map.
 4. **Google.** Sign In / Providers → **Google** → turn on and paste the Client ID and Client Secret from Google Cloud (see "Apple & Google setup" below).
 5. **Apple.** Sign In / Providers → **Apple** → turn on. For the iPhone app, put `com.guyfromhanoi.kizuna,host.exp.Exponent` in **Client IDs** (the second one is Expo Go, for testing). Sign in with Apple on the *website* also needs a Services ID and secret key from Apple; see below.
-6. **Redirect URLs.** Authentication → **URL Configuration**: Site URL = your Vercel address. Under Redirect URLs add `https://YOUR-SITE.vercel.app/app`, `kizuna://auth-callback` and, for testing in Expo Go, `exp://**`.
+6. **Redirect URLs.** Authentication → **URL Configuration**: Site URL = your Vercel address. Under Redirect URLs add `https://gokizuna.eu/app`, `kizuna://auth-callback` and, for testing in Expo Go, `exp://**`.
 7. **Copy your keys** (click **Connect** at the top of the project, or **Project Settings → API Keys**):
    - Project URL, like `https://abcd1234.supabase.co`
    - Publishable key, like `sb_publishable_…` (older projects call it the *anon* key; either works)
@@ -66,7 +66,7 @@ npx eas-cli@latest init            # links the app to your Expo account
 # give the cloud build your keys (once)
 npx eas-cli@latest env:create --environment production --name EXPO_PUBLIC_SUPABASE_URL --value "https://YOUR-PROJECT.supabase.co" --visibility plaintext
 npx eas-cli@latest env:create --environment production --name EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY --value "sb_publishable_xxx" --visibility plaintext
-npx eas-cli@latest env:create --environment production --name EXPO_PUBLIC_WEB_URL --value "https://YOUR-SITE.vercel.app" --visibility plaintext
+npx eas-cli@latest env:create --environment production --name EXPO_PUBLIC_WEB_URL --value "https://gokizuna.eu" --visibility plaintext
 
 npx eas-cli@latest build --platform ios --profile production   # signs in to Apple and builds
 npx eas-cli@latest submit --platform ios                         # uploads to App Store Connect
@@ -74,7 +74,7 @@ npx eas-cli@latest submit --platform ios                         # uploads to Ap
 
 Then in **App Store Connect**:
 - The build appears under **TestFlight** first. Install it on your phone and check it.
-- Fill in the listing: name, description, screenshots, and **Privacy Policy URL** = `https://YOUR-SITE.vercel.app/privacy`.
+- Fill in the listing: name, description, screenshots, and **Privacy Policy URL** = `https://gokizuna.eu/privacy`.
 - **App Privacy:** you collect *Email address* (for sign-in) and *User content* (the connections). Not used for tracking, linked to the user.
 - **Review notes:** no demo account needed; there is no login. Mention that accounts are guest accounts and can be deleted in the Account tab.
 - Submit for review (usually 1–3 days).
