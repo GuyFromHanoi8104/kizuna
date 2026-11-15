@@ -18,7 +18,7 @@ export default function Privacy() {
       <h2>Who can see it</h2>
       <p>
         Only you. Your connections are tied to your account and protected so that no other user can read them. Kizuna has no public profiles, no
-        feed, and does not sell or share your data. There is no advertising and no tracking.
+        feed, and does not sell or share your data. There is no advertising. We count anonymous page visits with Vercel Analytics, which uses no cookies and doesn’t identify you.
       </p>
 
       <h2>Where it is stored</h2>
