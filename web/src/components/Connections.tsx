@@ -3,6 +3,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Avatar, { DefaultAvatar } from "@/components/Avatar";
 import ProfileForm from "@/components/ProfileForm";
+import ProviderButtons from "@/components/ProviderButtons";
+import type { User } from "@supabase/supabase-js";
+import { PROVIDER_NAME, linkProvider, linkedProviders } from "@/lib/accounts";
 import WorldMap from "@/components/WorldMap";
 import { removeOldAvatars, type Profile } from "@/lib/profile";
 import { getSupabase } from "@/lib/supabase";
@@ -52,7 +55,9 @@ function Segmented<T extends string>({ options, value, onChange, label, white }:
   );
 }
 
-export default function Connections({ profile, onProfile }: { profile: Profile; onProfile: (p: Profile) => void }) {
+export default function Connections({ user, profile, onProfile }: { user: User; profile: Profile; onProfile: (p: Profile) => void }) {
+  const linked = linkedProviders(user);
+  const isGuest = linked.length === 0;
   const supabase = getSupabase();
   const [people, setPeople] = useState<Connection[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -372,9 +377,26 @@ export default function Connections({ profile, onProfile }: { profile: Profile; 
         </section>
       </div>
 
+      {isGuest ? (
+        <section className="card sync a" style={{ animationDelay: "720ms" }} aria-label="Use Kizuna on other devices">
+          <div className="sync-text">
+            <h3>Use Kizuna on your other devices</h3>
+            <p>Right now your map lives only in this browser. Connect Apple or Google to open the same map on your phone, laptop or anywhere else. Nothing you’ve saved changes.</p>
+          </div>
+          <ProviderButtons onPick={linkProvider} />
+        </section>
+      ) : null}
+
       <div className="account" style={{ flexDirection: "column", alignItems: "flex-start", gap: 0 }}>
+        {isGuest ? (
+          <p className="guest-note">Your Kizuna account is saved in this browser. Clearing your browser’s data or using private mode starts a new, empty map, unless you’ve connected Apple or Google.</p>
+        ) : (
+          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+            <span>Connected with {linked.map((p) => PROVIDER_NAME[p]).join(" and ")}</span>
+            <button type="button" className="link-btn" onClick={() => supabase.auth.signOut()}>Sign out</button>
+          </div>
+        )}
         <button type="button" className="link-btn danger" onClick={deleteAccount}>Delete account</button>
-        <p className="guest-note">Your Kizuna account is saved in this browser. Clearing your browser’s data or using private mode will start a new, empty map.</p>
       </div>
     </>
   );

@@ -274,3 +274,21 @@ button, input, select { font: inherit; }
 .ob-big { height: 60px; font-size: 22px; font-weight: 600; }
 .onboard .photo-row { margin: 4px 0 16px; }
 .guest-note { font-size: 13px; color: var(--ink-3); margin-top: 6px; max-width: 520px; }
+
+/* ───────── Apple / Google ───────── */
+.providers { display: flex; flex-direction: column; gap: 10px; }
+.pbtn { display: flex; align-items: center; justify-content: center; gap: 10px; height: 50px; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; transition: transform .2s, box-shadow .2s; }
+.pbtn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(11, 27, 43, .14); }
+.pbtn:active { transform: scale(.98); }
+.pbtn:disabled { opacity: .7; cursor: default; transform: none; box-shadow: none; }
+.pbtn-apple { background: #000; color: #fff; border: 0; }
+.pbtn-google { background: #fff; color: #1f1f1f; border: 1.5px solid var(--line-2); }
+.spinner.dark { border-color: rgba(11, 27, 43, .2); border-top-color: var(--ink); }
+.sync { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 20px; align-items: center; justify-content: space-between; }
+.sync-text { flex: 1 1 300px; }
+.sync-text h3 { margin: 0; font-size: 18px; font-weight: 800; }
+.sync-text p { margin: 6px 0 0; font-size: 15px; color: var(--ink-2); line-height: 1.5; }
+.sync .providers { flex: 0 1 300px; }
+.ob-signin { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--line); }
+.ob-signin p { margin: 0 0 12px; font-size: 15px; color: var(--ink-2); }
+.banner { margin: 0 0 16px; padding: 14px 18px; border-radius: 14px; background: #FFE9E3; color: var(--red-ink); font-weight: 600; font-size: 15px; animation: kz-swap .4s ease both; }

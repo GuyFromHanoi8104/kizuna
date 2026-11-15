@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import Avatar from '@/components/Avatar';
 import CountryPicker from '@/components/CountryPicker';
+import ProviderButtons from '@/components/ProviderButtons';
 import { Button, Field, PressScale, Rings, tap } from '@/components/ui';
 import { saveProfile, uploadAvatar } from '@/lib/profile';
 import { useStore } from '@/lib/store';
@@ -236,6 +237,14 @@ export default function Welcome() {
                 </Animated.Text>
               ) : null}
             </Animated.View>
+
+            {step === 1 && !session ? (
+              <Animated.View entering={FadeInDown.duration(700).delay(800).easing(EASE)} style={s.signin}>
+                <Text style={s.signinTitle}>Already use Kizuna on the website?</Text>
+                <Text style={s.signinText}>Sign in with the Apple or Google account you connected there, and your map appears here.</Text>
+                <ProviderButtons mode="signin" />
+              </Animated.View>
+            ) : null}
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -269,4 +278,7 @@ const s = StyleSheet.create({
   navRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
   link: { fontFamily: F.semibold, fontSize: 15, color: C.skyInk, paddingVertical: 6 },
   error: { fontFamily: F.semibold, fontSize: 15, color: C.redInk, marginTop: 6 },
+  signin: { marginTop: 16, backgroundColor: C.white, borderRadius: 24, padding: 22, gap: 10 },
+  signinTitle: { fontFamily: F.heavy, fontSize: 17, color: C.ink },
+  signinText: { fontFamily: F.regular, fontSize: 14, lineHeight: 20, color: C.ink2, marginBottom: 4 },
 });

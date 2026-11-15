@@ -34,6 +34,7 @@ function Root() {
         <Stack.Protected guard={!session || !hasProfile}>
           <Stack.Screen name="welcome" options={{ animation: 'fade' }} />
         </Stack.Protected>
+        <Stack.Screen name="auth-callback" />
       </Stack>
     </>
   );

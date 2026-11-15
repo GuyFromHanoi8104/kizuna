@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import Connections from "@/components/Connections";
 import Onboarding from "@/components/Onboarding";
+import { takeRedirectError } from "@/lib/accounts";
 import { loadProfile, type Profile } from "@/lib/profile";
 import { getSupabase } from "@/lib/supabase";
 
@@ -12,6 +13,12 @@ export default function AppPage() {
   // undefined = loading, null = signed in but no profile yet
   const [profile, setProfile] = useState<Profile | null | undefined>(undefined);
   const [profileError, setProfileError] = useState("");
+  const [redirectError, setRedirectError] = useState("");
+
+  // After an Apple/Google redirect, show any error Supabase sent back (read after hydration).
+  useEffect(() => {
+    Promise.resolve().then(() => setRedirectError(takeRedirectError()));
+  }, []);
   const configError =
     process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
       ? ""
@@ -60,12 +67,15 @@ export default function AppPage() {
   } else if (session && profile === null) {
     body = <Onboarding existingUserId={session.user.id} onDone={setProfile} />;
   } else if (session && profile) {
-    body = <Connections key={session.user.id} profile={profile} onProfile={setProfile} />;
+    body = <Connections key={session.user.id} user={session.user} profile={profile} onProfile={setProfile} />;
   }
 
   return (
     <div className="app-bg">
-      <div className="main">{body}</div>
+      <div className="main">
+        {redirectError ? <p className="banner" role="alert">{redirectError}</p> : null}
+        {body}
+      </div>
     </div>
   );
 }

@@ -5,14 +5,18 @@ import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import Avatar from '@/components/Avatar';
+import ProviderButtons from '@/components/ProviderButtons';
 import Screen from '@/components/Screen';
 import { Button, PressScale, styles as ui } from '@/components/ui';
 import { useStore } from '@/lib/store';
+import { PROVIDER_NAME, linkedProviders } from '@/lib/accounts';
 import { C, EASE, F, WEB_URL } from '@/lib/theme';
 import { countryName } from '@/lib/world';
 
 export default function Account() {
-  const { profile, people, deleteAccount } = useStore();
+  const { session, profile, people, deleteAccount, signOut } = useStore();
+  const linked = linkedProviders(session?.user);
+  const isGuest = linked.length === 0;
   const [busy, setBusy] = useState(false);
   const enter = (i: number) => FadeInDown.duration(600).delay(80 + i * 90).easing(EASE);
 
@@ -65,7 +69,20 @@ export default function Account() {
       </Animated.View>
 
       <Animated.View entering={enter(3)} style={{ gap: 12 }}>
-        <Text style={s.note}>Your Kizuna account lives on this phone. If you delete the app, your map is deleted with it.</Text>
+        {isGuest ? (
+          <View style={[ui.card, { gap: 12 }]}>
+            <Text style={s.dangerTitle}>Use Kizuna on your other devices</Text>
+            <Text style={[ui.sub, { marginTop: 0, fontSize: 14 }]}>Your map lives only on this phone right now. Connect Apple or Google to open the same map on the website or another phone. Nothing you’ve saved changes.</Text>
+            <ProviderButtons mode="link" />
+          </View>
+        ) : (
+          <View style={[ui.card, { gap: 10 }]}>
+            <Text style={s.dangerTitle}>Connected with {linked.map((p) => PROVIDER_NAME[p]).join(' and ')}</Text>
+            <Text style={[ui.sub, { marginTop: 0, fontSize: 14 }]}>Sign in with it on the website or any phone to see this same map.</Text>
+            <Button title="Sign out" tone="white" onPress={signOut} style={{ borderWidth: 1.5, borderColor: C.line2 }} />
+          </View>
+        )}
+        {isGuest ? <Text style={s.note}>If you delete the app before connecting Apple or Google, your map is deleted with it.</Text> : null}
         {WEB_URL ? (
           <Pressable accessibilityRole="link" onPress={() => WebBrowser.openBrowserAsync(`${WEB_URL}/privacy`)} style={s.linkRow}>
             <Text style={s.link}>Privacy policy</Text>
