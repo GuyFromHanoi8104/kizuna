@@ -37,7 +37,7 @@ Sign-in is by email code (no passwords). Each person only ever sees their own co
    - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` = your publishable key
 4. **Deploy.** Every push to `main` redeploys automatically.
 
-Before publishing, open `web/src/app/privacy/page.tsx` and replace `[YOUR CONTACT EMAIL]`.
+The privacy page (`web/src/app/privacy/page.tsx`) lists linh@appkollab.com as the contact.
 
 Run locally (optional): `cd web && cp .env.example .env.local` (fill it in) → `npm install` → `npm run dev`.
 

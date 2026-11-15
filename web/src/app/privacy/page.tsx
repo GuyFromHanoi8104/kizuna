@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Privacy · Kizuna" };
 
-// Plain-language policy. Review it and replace [YOUR CONTACT EMAIL] before publishing.
+// Plain-language policy. Review it before publishing.
 export default function Privacy() {
   return (
     <main className="prose">
@@ -34,7 +34,7 @@ export default function Privacy() {
       </p>
 
       <h2>Contact</h2>
-      <p>Questions: [YOUR CONTACT EMAIL]</p>
+      <p>Questions: <a href="mailto:linh@appkollab.com">linh@appkollab.com</a></p>
     </main>
   );
 }
