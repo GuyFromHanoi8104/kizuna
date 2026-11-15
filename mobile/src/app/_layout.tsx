@@ -10,9 +10,11 @@ import { StoreProvider, useStore } from '@/lib/store';
 SplashScreen.preventAutoHideAsync();
 
 function Root() {
-  const { session } = useStore();
+  const { session, profile, profileError } = useStore();
   const [fontsLoaded] = useFonts({ Anton_400Regular, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold });
-  const ready = fontsLoaded && session !== undefined;
+  // Wait for the profile too (unless loading it failed), so the right screen shows straight away.
+  const ready = fontsLoaded && session !== undefined && (!session || profile !== undefined || !!profileError);
+  const hasProfile = !!profile || !!profileError;
 
   useEffect(() => {
     if (ready) SplashScreen.hideAsync();
@@ -24,9 +26,13 @@ function Root() {
     <>
       <StatusBar style="dark" />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#F3F6FA' } }}>
-        <Stack.Protected guard={!!session}>
+        <Stack.Protected guard={!!session && hasProfile}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="country/[code]" />
+          <Stack.Screen name="profile" options={{ presentation: 'modal' }} />
+        </Stack.Protected>
+        <Stack.Protected guard={!!session && !hasProfile}>
+          <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
         </Stack.Protected>
         <Stack.Protected guard={!session}>
           <Stack.Screen name="login" options={{ animation: 'fade' }} />

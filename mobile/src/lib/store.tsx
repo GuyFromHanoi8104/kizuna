@@ -2,12 +2,16 @@ import type { Session } from '@supabase/supabase-js';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 import type { Connection, NewConnection, View } from '@/lib/connections';
+import { loadProfile, removeOldAvatars, type Profile } from '@/lib/profile';
 import { isConfigured, supabase } from '@/lib/supabase';
 
 const COLUMNS = 'id,name,from_country,lives_in,contact,how_met,created_at';
 
 type Store = {
   session: Session | null | undefined; // undefined = still checking
+  profile: Profile | null | undefined; // undefined = loading, null = needs onboarding
+  profileError: string;
+  setProfile: (p: Profile) => void;
   people: Connection[];
   loaded: boolean;
   error: string;
@@ -28,6 +32,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState('');
   const [view, setView] = useState<View>('from');
+  const [profile, setProfileState] = useState<Profile | null | undefined>(undefined);
+  const [profileError, setProfileError] = useState('');
+  const setProfile = useCallback((p: Profile) => setProfileState(p), []);
 
   useEffect(() => {
     if (!isConfigured) return;
@@ -37,6 +44,19 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const userId = session?.user.id;
+
+  useEffect(() => {
+    if (!userId) return;
+    let alive = true;
+    loadProfile(userId)
+      .then((p) => alive && setProfileState(p))
+      .catch((e) => alive && setProfileError((e as Error).message));
+    return () => {
+      alive = false;
+      setProfileState(undefined);
+      setProfileError('');
+    };
+  }, [userId]);
 
   const refresh = useCallback(async () => {
     const { data, error } = await supabase.from('connections').select(COLUMNS).order('created_at', { ascending: true });
@@ -87,14 +107,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const deleteAccount = useCallback(async () => {
+    if (userId) await removeOldAvatars(userId).catch(() => {});
     const { error } = await supabase.rpc('delete_my_account');
     if (error) throw new Error(error.message);
     await supabase.auth.signOut();
-  }, []);
+  }, [userId]);
 
   const value = useMemo(
-    () => ({ session, people, loaded, error, view, setView, add, remove, refresh, signOut, deleteAccount }),
-    [session, people, loaded, error, view, add, remove, refresh, signOut, deleteAccount],
+    () => ({ session, profile, profileError, setProfile, people, loaded, error, view, setView, add, remove, refresh, signOut, deleteAccount }),
+    [session, profile, profileError, setProfile, people, loaded, error, view, add, remove, refresh, signOut, deleteAccount],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

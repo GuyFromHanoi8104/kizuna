@@ -1,10 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Avatar, { DefaultAvatar } from "@/components/Avatar";
+import ProfileForm from "@/components/ProfileForm";
 import WorldMap from "@/components/WorldMap";
+import { removeOldAvatars, type Profile } from "@/lib/profile";
 import { getSupabase } from "@/lib/supabase";
 import { BY_CODE, CONTINENTS, COUNTRIES, countryName } from "@/lib/world";
-import { HOW_MET, countsBy, initials, placeOf, statsOf, type Connection, type HowMet, type View } from "@/lib/connections";
+import { HOW_MET, countsBy, placeOf, statsOf, type Connection, type HowMet, type View } from "@/lib/connections";
 import { useCountUp } from "@/lib/useCountUp";
 
 const COLUMNS = "id,name,from_country,lives_in,contact,how_met,created_at";
@@ -49,7 +52,7 @@ function Segmented<T extends string>({ options, value, onChange, label, white }:
   );
 }
 
-export default function Connections({ email }: { email: string }) {
+export default function Connections({ email, profile, onProfile }: { email: string; profile: Profile; onProfile: (p: Profile) => void }) {
   const supabase = getSupabase();
   const [people, setPeople] = useState<Connection[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -65,6 +68,7 @@ export default function Connections({ email }: { email: string }) {
   const [saving, setSaving] = useState(false);
   const [lastAdded, setLastAdded] = useState<string | null>(null);
   const [removing, setRemoving] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
 
   // Load connections
   useEffect(() => {
@@ -171,6 +175,7 @@ export default function Connections({ email }: { email: string }) {
 
   async function deleteAccount() {
     if (!window.confirm("Delete your Kizuna account and all your saved connections? This can’t be undone.")) return;
+    await removeOldAvatars(profile.id).catch(() => {});
     const { error } = await supabase.rpc("delete_my_account");
     if (error) return window.alert(`Couldn’t delete account: ${error.message}`);
     await supabase.auth.signOut();
@@ -205,6 +210,21 @@ export default function Connections({ email }: { email: string }) {
           />
         </div>
       </div>
+
+      {editing ? (
+        <div style={{ marginTop: 22 }}>
+          <ProfileForm userId={profile.id} initial={profile} onSaved={(p) => { onProfile(p); setEditing(false); }} onCancel={() => setEditing(false)} />
+        </div>
+      ) : (
+        <div className="card me a" style={{ animationDelay: "120ms" }}>
+          <Avatar url={profile.avatar_url} seed={profile.id} size={52} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="me-name">{profile.name}{profile.age ? `, ${profile.age}` : ""}</div>
+            <div className="me-sub">From {countryName(profile.from_country)} · Lives in {countryName(profile.lives_in)}</div>
+          </div>
+          <button type="button" className="chip" onClick={() => setEditing(true)}>Edit profile</button>
+        </div>
+      )}
 
       {loadError && <p className="hint err">Couldn’t load your connections: {loadError}</p>}
 
@@ -278,7 +298,7 @@ export default function Connections({ email }: { email: string }) {
               <div className="people">
                 {here.map((p) => (
                   <div key={p.id} className={`person${p.id === removing ? " gone" : p.id === lastAdded ? " new" : ""}`}>
-                    <span className="avatar" aria-hidden="true">{initials(p.name)}</span>
+                    <DefaultAvatar seed={p.id} size={44} />
                     <div className="person-main">
                       <div className="person-name">{p.name}</div>
                       <div className="person-sub">{subOf(p)}</div>

@@ -6,9 +6,10 @@ import Animated, { FadeIn, FadeInDown, FadeOutRight, LinearTransition, ZoomIn, u
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { DefaultAvatar } from '@/components/Avatar';
 import CountryPicker from '@/components/CountryPicker';
 import { Button, Field, PressScale, Segmented, styles as ui } from '@/components/ui';
-import { HOW_MET, initials, placeOf, type Connection, type HowMet, type View as ViewMode } from '@/lib/connections';
+import { HOW_MET, placeOf, type Connection, type HowMet, type View as ViewMode } from '@/lib/connections';
 import { useStore } from '@/lib/store';
 import { C, EASE, F, TAG_COLORS } from '@/lib/theme';
 import { BY_CODE, CONTINENTS, countryName } from '@/lib/world';
@@ -20,9 +21,7 @@ function PersonRow({ p, live, onRemove }: { p: Connection; live: boolean; onRemo
       .join(' · ') || 'No details yet';
   return (
     <Animated.View entering={ZoomIn.springify().damping(14)} exiting={FadeOutRight.duration(220)} layout={LinearTransition.duration(250)} style={s.person}>
-      <View style={s.avatar}>
-        <Text style={s.avatarText}>{initials(p.name)}</Text>
-      </View>
+      <DefaultAvatar seed={p.id} size={42} />
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text style={s.personName}>{p.name}</Text>
         <Text style={s.personSub}>{sub}</Text>
@@ -205,8 +204,6 @@ const s = StyleSheet.create({
   bigCodeText: { fontFamily: F.display, fontSize: 26, color: '#fff' },
   title: { fontFamily: F.display, fontSize: 36, lineHeight: 42, color: C.ink, textTransform: 'uppercase' },
   person: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 16, backgroundColor: C.white, borderWidth: 1, borderColor: C.line },
-  avatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: C.sky, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { fontFamily: F.heavy, fontSize: 14, color: '#fff' },
   personName: { fontFamily: F.bold, fontSize: 16, color: C.ink },
   personSub: { fontFamily: F.regular, fontSize: 14, color: C.ink2, marginTop: 2 },
   tag: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999 },

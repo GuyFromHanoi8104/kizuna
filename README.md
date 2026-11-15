@@ -1,6 +1,6 @@
 # Kizuna 絆
 
-Map the people you know around the world. Pick a country, save who you know there (name, where they live, phone or social, how you met) and watch your map fill in.
+Map the people you know around the world. Create your profile (name, where you're from, where you live, optional age, phone and photo), then pick a country, save who you know there (name, where they live, phone or social, how you met) and watch your map fill in.
 
 One repo, three parts, sharing one Supabase database:
 
@@ -16,7 +16,7 @@ Sign-in is email + password, with no confirmation emails. Each person only ever 
 
 ## 1. Supabase (5 min)
 
-1. **Create the table.** Supabase project → **SQL Editor** → New query → paste all of [`supabase/schema.sql`](supabase/schema.sql) → **Run**.
+1. **Create the tables.** Supabase project → **SQL Editor** → New query → paste all of [`supabase/schema.sql`](supabase/schema.sql) → **Run**. It creates `connections`, `profiles` and the `avatars` photo storage. It's safe to run again whenever the file changes.
 2. **Turn off email confirmation.** **Authentication → Sign In / Providers → Email** → switch **Confirm email** off → Save. Kizuna uses email + password, so people are signed in right away and no emails are ever sent.
 3. **Site URL.** **Authentication → URL Configuration** → set Site URL to your Vercel address (after step 2 below).
 4. **Copy your keys** (click **Connect** at the top of the project, or **Project Settings → API Keys**):

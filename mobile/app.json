@@ -10,8 +10,12 @@
     "ios": {
       "bundleIdentifier": "com.guyfromhanoi.kizuna",
       "supportsTablet": true,
-      "config": { "usesNonExemptEncryption": false },
-      "infoPlist": { "ITSAppUsesNonExemptEncryption": false }
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.guyfromhanoi.kizuna",
@@ -36,6 +40,13 @@
           "backgroundColor": "#0092F5",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 140
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Kizuna uses your photos so you can choose a profile picture.",
+          "cameraPermission": false
         }
       ]
     ],

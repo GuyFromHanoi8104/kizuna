@@ -1,15 +1,18 @@
+import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import Avatar from '@/components/Avatar';
 import Screen from '@/components/Screen';
-import { Button, styles as ui } from '@/components/ui';
+import { Button, PressScale, styles as ui } from '@/components/ui';
 import { useStore } from '@/lib/store';
 import { C, EASE, F, WEB_URL } from '@/lib/theme';
+import { countryName } from '@/lib/world';
 
 export default function Account() {
-  const { session, people, signOut, deleteAccount } = useStore();
+  const { session, profile, people, signOut, deleteAccount } = useStore();
   const [busy, setBusy] = useState(false);
   const enter = (i: number) => FadeInDown.duration(600).delay(80 + i * 90).easing(EASE);
 
@@ -39,12 +42,30 @@ export default function Account() {
         <Text style={ui.sub}>Signed in as {session?.user.email}</Text>
       </Animated.View>
 
-      <Animated.View entering={enter(1)} style={[ui.card, { gap: 4 }]}>
+      {profile ? (
+        <Animated.View entering={enter(1)} style={[ui.card, s.me]}>
+          <Avatar url={profile.avatar_url} seed={profile.id} size={64} />
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={s.meName}>
+              {profile.name}
+              {profile.age ? `, ${profile.age}` : ''}
+            </Text>
+            <Text style={s.meSub}>From {countryName(profile.from_country)}</Text>
+            <Text style={s.meSub}>Lives in {countryName(profile.lives_in)}</Text>
+            {profile.phone ? <Text style={s.meSub}>{profile.phone}</Text> : null}
+          </View>
+          <PressScale onPress={() => router.push('/profile')} label="Edit profile" style={s.edit}>
+            <Text style={s.editText}>Edit</Text>
+          </PressScale>
+        </Animated.View>
+      ) : null}
+
+      <Animated.View entering={enter(2)} style={[ui.card, { gap: 4 }]}>
         <Text style={s.big}>{people.length}</Text>
         <Text style={ui.sub}>{people.length === 1 ? 'connection saved' : 'connections saved'}, synced with the Kizuna website.</Text>
       </Animated.View>
 
-      <Animated.View entering={enter(2)} style={{ gap: 12 }}>
+      <Animated.View entering={enter(3)} style={{ gap: 12 }}>
         <Button title="Sign out" tone="white" onPress={signOut} style={s.outline} />
         {WEB_URL ? (
           <Pressable accessibilityRole="link" onPress={() => WebBrowser.openBrowserAsync(`${WEB_URL}/privacy`)} style={s.linkRow}>
@@ -53,7 +74,7 @@ export default function Account() {
         ) : null}
       </Animated.View>
 
-      <Animated.View entering={enter(3)} style={[ui.card, { gap: 10, marginTop: 24 }]}>
+      <Animated.View entering={enter(4)} style={[ui.card, { gap: 10, marginTop: 24 }]}>
         <Text style={s.dangerTitle}>Delete account</Text>
         <Text style={ui.sub}>Erases your account and every connection you saved.</Text>
         <View style={{ marginTop: 6 }}>
@@ -65,6 +86,11 @@ export default function Account() {
 }
 
 const s = StyleSheet.create({
+  me: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  meName: { fontFamily: F.heavy, fontSize: 18, color: C.ink },
+  meSub: { fontFamily: F.regular, fontSize: 14, color: C.ink2, marginTop: 2 },
+  edit: { height: 40, paddingHorizontal: 16, borderRadius: 999, borderWidth: 1.5, borderColor: C.line2, alignItems: 'center', justifyContent: 'center' },
+  editText: { fontFamily: F.bold, fontSize: 14, color: C.ink },
   big: { fontFamily: F.heavy, fontSize: 44, color: C.ink },
   outline: { borderWidth: 1.5, borderColor: C.line2 },
   linkRow: { paddingVertical: 10, alignItems: 'center' },
