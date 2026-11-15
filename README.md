@@ -1,0 +1,94 @@
+# Kizuna 絆
+
+Map the people you know around the world. Pick a country, save who you know there (name, where they live, phone or social, how you met) and watch your map fill in.
+
+One repo, three parts, sharing one Supabase database:
+
+| Folder | What | Hosted on |
+| --- | --- | --- |
+| `web/` | Website (Next.js) | Vercel |
+| `mobile/` | iPhone app (Expo / React Native) | App Store, via Expo's cloud build |
+| `supabase/` | Database setup (`schema.sql`) | Supabase |
+
+Sign-in is by email code (no passwords). Each person only ever sees their own connections; that's enforced in the database (Row Level Security), not just in the app.
+
+---
+
+## 1. Supabase (5 min)
+
+1. **Create the table.** Supabase project → **SQL Editor** → New query → paste all of [`supabase/schema.sql`](supabase/schema.sql) → **Run**.
+2. **Make the login email send a code.** **Authentication → Emails → Templates**. In both **Magic Link** and **Confirm signup**, add this line to the message body:
+   ```
+   Your Kizuna code: {{ .Token }}
+   ```
+3. **Site URL.** **Authentication → URL Configuration** → set Site URL to your Vercel address (after step 2 below).
+4. **Copy your keys** (click **Connect** at the top of the project, or **Project Settings → API Keys**):
+   - Project URL, like `https://abcd1234.supabase.co`
+   - Publishable key, like `sb_publishable_…` (older projects call it the *anon* key; either works)
+
+> Supabase's built-in email sender only allows a few emails per hour. That's fine for testing. Before launch, connect your own email provider under **Authentication → Emails → SMTP Settings** (Resend, Postmark, etc.).
+
+## 2. Website on Vercel (3 min)
+
+1. Vercel → **Add New → Project** → import this repo.
+2. **Root Directory:** `web`
+3. **Environment Variables:**
+   - `NEXT_PUBLIC_SUPABASE_URL` = your Project URL
+   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` = your publishable key
+4. **Deploy.** Every push to `main` redeploys automatically.
+
+Before publishing, open `web/src/app/privacy/page.tsx` and replace `[YOUR CONTACT EMAIL]`.
+
+Run locally (optional): `cd web && cp .env.example .env.local` (fill it in) → `npm install` → `npm run dev`.
+
+## 3. iPhone app
+
+### Try it on your phone (free, no Apple account needed)
+
+On a laptop with Node.js installed:
+
+```bash
+cd mobile
+cp .env.example .env      # fill in the three values
+npm install
+npx expo start
+```
+
+Install **Expo Go** from the App Store, then scan the QR code with your iPhone camera. Phone and laptop need to be on the same Wi-Fi (or run `npx expo start --tunnel`).
+
+### Publish to the App Store
+
+You need an **Apple Developer account** ($99/year) and a free **Expo account** (expo.dev). No Mac needed; Expo builds in the cloud.
+
+```bash
+cd mobile
+npx eas-cli@latest login
+npx eas-cli@latest init            # links the app to your Expo account
+
+# give the cloud build your keys (once)
+npx eas-cli@latest env:create --environment production --name EXPO_PUBLIC_SUPABASE_URL --value "https://YOUR-PROJECT.supabase.co" --visibility plaintext
+npx eas-cli@latest env:create --environment production --name EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY --value "sb_publishable_xxx" --visibility plaintext
+npx eas-cli@latest env:create --environment production --name EXPO_PUBLIC_WEB_URL --value "https://YOUR-SITE.vercel.app" --visibility plaintext
+
+npx eas-cli@latest build --platform ios --profile production   # signs in to Apple and builds
+npx eas-cli@latest submit --platform ios                         # uploads to App Store Connect
+```
+
+Then in **App Store Connect**:
+- The build appears under **TestFlight** first. Install it on your phone and check it.
+- Fill in the listing: name, description, screenshots, and **Privacy Policy URL** = `https://YOUR-SITE.vercel.app/privacy`.
+- **App Privacy:** you collect *Email address* (for sign-in) and *User content* (the connections). Not used for tracking, linked to the user.
+- **Review notes:** Apple's reviewer can't receive your email codes. In Supabase → **Authentication → Users → Add user**, create `review@yourdomain.com` with a password, tick *Auto Confirm*, and give those details to Apple. The login screen has a "Sign in with a password instead" link for this.
+- Submit for review (usually 1–3 days).
+
+The bundle ID is `com.guyfromhanoi.kizuna` (in `mobile/app.json`). Change it before your first build if you want; it can't be changed after.
+
+---
+
+## How it fits together
+
+- `supabase/schema.sql`: `connections` table (`name`, `from_country`, `lives_in`, `contact`, `how_met`), RLS policies, and `delete_my_account()`. Apple requires in-app account deletion, and both the app (Account tab) and the website (bottom of My connections) offer it.
+- The "Show people by" switch counts each person by **where they're from** (default) or **where they live** (falls back to where they're from if not set).
+- Map and country data: `web/src/data/world.json` and `mobile/src/data/world.json`, generated by `scripts/gen-world.mjs` from Natural Earth (world-atlas). To regenerate: `cd scripts && npm install && npm run world`.
+- Colors: Sky Blue `#0092F5` (deepened from `#0099FF` for text contrast), Cloudy White `#FDFDFE`, Amber Red `#DD2C04`. Fonts: Anton + Inter.
+- Every animation is switched off when the device has *Reduce Motion* turned on.
