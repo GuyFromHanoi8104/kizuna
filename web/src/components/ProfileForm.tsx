@@ -18,6 +18,7 @@ export default function ProfileForm({ userId, initial, onSaved, onCancel }: Prop
   const [from, setFrom] = useState(initial?.from_country ?? "");
   const [live, setLive] = useState(initial?.lives_in ?? "");
   const [phone, setPhone] = useState(initial?.phone ?? "");
+  const [email, setEmail] = useState(initial?.email ?? "");
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(initial?.avatar_url ?? null);
   const [removePhoto, setRemovePhoto] = useState(false);
@@ -33,6 +34,7 @@ export default function ProfileForm({ userId, initial, onSaved, onCancel }: Prop
     if (!from) return setError("Pick where you’re from.");
     if (!live) return setError("Pick where you live.");
     const ageNum = age.trim() ? Number(age) : null;
+    if (email.trim() && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())) return setError("That email doesn’t look right.");
     if (ageNum !== null && (!Number.isInteger(ageNum) || ageNum < 13 || ageNum > 120)) return setError("Age should be a number between 13 and 120.");
     setBusy(true);
     try {
@@ -48,6 +50,7 @@ export default function ProfileForm({ userId, initial, onSaved, onCancel }: Prop
         from_country: from,
         lives_in: live,
         phone: phone.trim() || null,
+        email: email.trim() || null,
         avatar_url,
       });
       onSaved(saved);
@@ -60,7 +63,7 @@ export default function ProfileForm({ userId, initial, onSaved, onCancel }: Prop
 
   return (
     <form className="card form profile-form a" onSubmit={submit} noValidate>
-      <h3>{onboarding ? "About you" : "Edit profile"}</h3>
+      <h3>Edit profile</h3>
       <p className="form-note">{onboarding ? "One last step. Only name, where you’re from and where you live are required." : "Only name, where you’re from and where you live are required."}</p>
 
       <div className="photo-row">
@@ -120,6 +123,10 @@ export default function ProfileForm({ userId, initial, onSaved, onCancel }: Prop
         <div>
           <label className="field-label" htmlFor="p-phone">Phone <em>(optional)</em></label>
           <input id="p-phone" className="input" type="tel" value={phone} maxLength={40} onChange={(e) => setPhone(e.target.value)} placeholder="+49 …" autoComplete="tel" />
+        </div>
+        <div>
+          <label className="field-label" htmlFor="p-email">Email <em>(optional)</em></label>
+          <input id="p-email" className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" autoComplete="email" />
         </div>
       </div>
 

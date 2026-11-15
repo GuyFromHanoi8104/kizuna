@@ -31,11 +31,8 @@ function Root() {
           <Stack.Screen name="country/[code]" />
           <Stack.Screen name="profile" options={{ presentation: 'modal' }} />
         </Stack.Protected>
-        <Stack.Protected guard={!!session && !hasProfile}>
-          <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
-        </Stack.Protected>
-        <Stack.Protected guard={!session}>
-          <Stack.Screen name="login" options={{ animation: 'fade' }} />
+        <Stack.Protected guard={!session || !hasProfile}>
+          <Stack.Screen name="welcome" options={{ animation: 'fade' }} />
         </Stack.Protected>
       </Stack>
     </>

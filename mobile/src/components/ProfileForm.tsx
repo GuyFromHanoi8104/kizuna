@@ -17,6 +17,7 @@ export default function ProfileForm({ userId, initial, onSaved }: Props) {
   const [from, setFrom] = useState(initial?.from_country ?? '');
   const [live, setLive] = useState(initial?.lives_in ?? '');
   const [phone, setPhone] = useState(initial?.phone ?? '');
+  const [email, setEmail] = useState(initial?.email ?? '');
   const [photo, setPhoto] = useState<{ uri: string; mime: string } | null>(null);
   const [removePhoto, setRemovePhoto] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -38,6 +39,7 @@ export default function ProfileForm({ userId, initial, onSaved }: Props) {
     if (!from) return setError('Pick where you’re from.');
     if (!live) return setError('Pick where you live.');
     const ageNum = age.trim() ? Number(age) : null;
+    if (email.trim() && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())) return setError('That email doesn’t look right.');
     if (ageNum !== null && (!Number.isInteger(ageNum) || ageNum < 13 || ageNum > 120)) return setError('Age should be a number between 13 and 120.');
     setBusy(true);
     try {
@@ -47,7 +49,7 @@ export default function ProfileForm({ userId, initial, onSaved }: Props) {
         await removeOldAvatars(userId);
         avatar_url = null;
       }
-      onSaved(await saveProfile(userId, { name: name.trim(), age: ageNum, from_country: from, lives_in: live, phone: phone.trim() || null, avatar_url }));
+      onSaved(await saveProfile(userId, { name: name.trim(), age: ageNum, from_country: from, lives_in: live, phone: phone.trim() || null, email: email.trim() || null, avatar_url }));
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -83,6 +85,7 @@ export default function ProfileForm({ userId, initial, onSaved }: Props) {
         <CountryPicker label="Where you’re from" required value={from} onChange={setFrom} placeholder="Choose a country" />
         <CountryPicker label="Where you live" required value={live} onChange={setLive} placeholder="Choose a country" />
         <Field label="Phone" hint="(optional)" value={phone} onChangeText={setPhone} keyboardType="phone-pad" textContentType="telephoneNumber" autoComplete="tel" maxLength={40} placeholder="+49 …" />
+        <Field label="Email" hint="(optional)" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoComplete="email" textContentType="emailAddress" placeholder="you@example.com" />
       </Animated.View>
 
       <Animated.View entering={enter(2)} style={{ gap: 10 }}>

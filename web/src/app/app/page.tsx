@@ -3,8 +3,7 @@
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import Connections from "@/components/Connections";
-import Login from "@/components/Login";
-import ProfileForm from "@/components/ProfileForm";
+import Onboarding from "@/components/Onboarding";
 import { loadProfile, type Profile } from "@/lib/profile";
 import { getSupabase } from "@/lib/supabase";
 
@@ -49,7 +48,7 @@ export default function AppPage() {
       </div>
     );
   } else if (session === null) {
-    body = <Login />;
+    body = <Onboarding onDone={setProfile} />;
   } else if (session && profileError) {
     body = (
       <div className="card login">
@@ -59,9 +58,9 @@ export default function AppPage() {
       </div>
     );
   } else if (session && profile === null) {
-    body = <ProfileForm userId={session.user.id} onSaved={setProfile} />;
+    body = <Onboarding existingUserId={session.user.id} onDone={setProfile} />;
   } else if (session && profile) {
-    body = <Connections key={session.user.id} email={session.user.email ?? ""} profile={profile} onProfile={setProfile} />;
+    body = <Connections key={session.user.id} profile={profile} onProfile={setProfile} />;
   }
 
   return (

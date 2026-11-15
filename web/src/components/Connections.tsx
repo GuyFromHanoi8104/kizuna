@@ -52,7 +52,7 @@ function Segmented<T extends string>({ options, value, onChange, label, white }:
   );
 }
 
-export default function Connections({ email, profile, onProfile }: { email: string; profile: Profile; onProfile: (p: Profile) => void }) {
+export default function Connections({ profile, onProfile }: { profile: Profile; onProfile: (p: Profile) => void }) {
   const supabase = getSupabase();
   const [people, setPeople] = useState<Connection[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -167,10 +167,6 @@ export default function Connections({ email, profile, onProfile }: { email: stri
     setRemoving(null);
     if (error) return setHint({ text: `Couldn’t remove: ${error.message}`, kind: "err" });
     setPeople((p) => p.filter((x) => x.id !== c.id));
-  }
-
-  async function signOut() {
-    await supabase.auth.signOut();
   }
 
   async function deleteAccount() {
@@ -376,10 +372,9 @@ export default function Connections({ email, profile, onProfile }: { email: stri
         </section>
       </div>
 
-      <div className="account">
-        <span>Signed in as {email}</span>
-        <button type="button" className="link-btn" onClick={signOut}>Sign out</button>
+      <div className="account" style={{ flexDirection: "column", alignItems: "flex-start", gap: 0 }}>
         <button type="button" className="link-btn danger" onClick={deleteAccount}>Delete account</button>
+        <p className="guest-note">Your Kizuna account is saved in this browser. Clearing your browser’s data or using private mode will start a new, empty map.</p>
       </div>
     </>
   );

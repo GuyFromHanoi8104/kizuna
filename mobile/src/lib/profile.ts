@@ -7,12 +7,13 @@ export type Profile = {
   from_country: string;
   lives_in: string;
   phone: string | null;
+  email: string | null;
   avatar_url: string | null;
 };
 
 export type ProfileInput = Omit<Profile, 'id'>;
 
-const COLUMNS = 'id,name,age,from_country,lives_in,phone,avatar_url';
+const COLUMNS = 'id,name,age,from_country,lives_in,phone,email,avatar_url';
 
 export async function loadProfile(userId: string): Promise<Profile | null> {
   const { data, error } = await supabase.from('profiles').select(COLUMNS).eq('id', userId).maybeSingle();

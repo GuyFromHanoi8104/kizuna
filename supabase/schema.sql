@@ -92,3 +92,8 @@ create policy "avatars: own update" on storage.objects for update to authenticat
   using (bucket_id = 'avatars' and (storage.foldername(name))[1] = (select auth.uid())::text);
 create policy "avatars: own delete" on storage.objects for delete to authenticated
   using (bucket_id = 'avatars' and (storage.foldername(name))[1] = (select auth.uid())::text);
+
+-- Optional email on the profile (added Nov 2026). Saved as contact info; not used for login.
+alter table public.profiles add column if not exists email text;
+alter table public.profiles drop constraint if exists profiles_email_check;
+alter table public.profiles add constraint profiles_email_check check (email is null or (char_length(email) <= 254 and email ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$'));

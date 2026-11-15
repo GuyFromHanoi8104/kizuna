@@ -12,7 +12,7 @@ import { C, EASE, F, WEB_URL } from '@/lib/theme';
 import { countryName } from '@/lib/world';
 
 export default function Account() {
-  const { session, profile, people, signOut, deleteAccount } = useStore();
+  const { profile, people, deleteAccount } = useStore();
   const [busy, setBusy] = useState(false);
   const enter = (i: number) => FadeInDown.duration(600).delay(80 + i * 90).easing(EASE);
 
@@ -39,7 +39,6 @@ export default function Account() {
     <Screen>
       <Animated.View entering={enter(0)}>
         <Text style={ui.h1}>Account</Text>
-        <Text style={ui.sub}>Signed in as {session?.user.email}</Text>
       </Animated.View>
 
       {profile ? (
@@ -66,7 +65,7 @@ export default function Account() {
       </Animated.View>
 
       <Animated.View entering={enter(3)} style={{ gap: 12 }}>
-        <Button title="Sign out" tone="white" onPress={signOut} style={s.outline} />
+        <Text style={s.note}>Your Kizuna account lives on this phone. If you delete the app, your map is deleted with it.</Text>
         {WEB_URL ? (
           <Pressable accessibilityRole="link" onPress={() => WebBrowser.openBrowserAsync(`${WEB_URL}/privacy`)} style={s.linkRow}>
             <Text style={s.link}>Privacy policy</Text>
@@ -92,7 +91,7 @@ const s = StyleSheet.create({
   edit: { height: 40, paddingHorizontal: 16, borderRadius: 999, borderWidth: 1.5, borderColor: C.line2, alignItems: 'center', justifyContent: 'center' },
   editText: { fontFamily: F.bold, fontSize: 14, color: C.ink },
   big: { fontFamily: F.heavy, fontSize: 44, color: C.ink },
-  outline: { borderWidth: 1.5, borderColor: C.line2 },
+  note: { fontFamily: F.regular, fontSize: 13, lineHeight: 19, color: C.ink3, paddingHorizontal: 4 },
   linkRow: { paddingVertical: 10, alignItems: 'center' },
   link: { fontFamily: F.semibold, fontSize: 15, color: C.skyInk },
   dangerTitle: { fontFamily: F.heavy, fontSize: 18, color: C.ink },
