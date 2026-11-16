@@ -262,7 +262,7 @@ button, input, select { font: inherit; }
 /* ───────── Onboarding (3 steps) ───────── */
 @keyframes kz-step-fwd { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: none; } }
 @keyframes kz-step-back { from { opacity: 0; transform: translateX(-40px); } to { opacity: 1; transform: none; } }
-.onboard { max-width: 640px; margin: 24px auto 0; padding: 32px; overflow: hidden; }
+.onboard { max-width: 640px; margin: 24px auto 0; padding: 32px; overflow-x: clip; overflow-y: visible; }
 .steps-bar { display: flex; gap: 6px; margin-bottom: 28px; }
 .steps-bar span { flex: 1; height: 6px; border-radius: 99px; background: var(--line); position: relative; overflow: hidden; }
 .steps-bar span::after { content: ""; position: absolute; inset: 0; background: var(--red); transform: scaleX(0); transform-origin: left; transition: transform .5s var(--ease); }
@@ -292,3 +292,26 @@ button, input, select { font: inherit; }
 .ob-signin { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--line); }
 .ob-signin p { margin: 0 0 12px; font-size: 15px; color: var(--ink-2); }
 .banner { margin: 0 0 16px; padding: 14px 18px; border-radius: 14px; background: #FFE9E3; color: var(--red-ink); font-weight: 600; font-size: 15px; animation: kz-swap .4s ease both; }
+
+/* ───────── Country combobox ───────── */
+@keyframes kz-drop-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+.combo { position: relative; }
+.combo .input { padding-right: 36px; }
+.combo-caret { position: absolute; right: 14px; top: 12px; color: var(--ink-3); pointer-events: none; font-size: 16px; }
+.combo-list { position: absolute; z-index: 30; left: 0; right: 0; top: calc(100% + 6px); margin: 0; padding: 6px; list-style: none; max-height: 280px; overflow-y: auto; background: #fff; border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 14px 34px rgba(11, 27, 43, .14); animation: kz-drop-in .18s var(--ease) both; }
+.combo-opt { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 42px; padding: 0 12px; border-radius: 10px; cursor: pointer; font-size: 15px; }
+.combo-opt.active { background: #EEF6FF; }
+.combo-opt.chosen { font-weight: 700; color: var(--red); }
+.combo-opt.none { color: var(--ink-3); }
+.combo-code { font-size: 12px; font-weight: 800; color: var(--ink-3); }
+.combo-empty { padding: 12px; color: var(--ink-3); font-size: 15px; }
+
+/* ───────── Add several people ───────── */
+.drafts { display: flex; flex-direction: column; gap: 12px; }
+.draft.multi { margin-top: 14px; padding: 14px 16px 16px; border: 1.5px solid var(--line); border-radius: 16px; background: var(--bg); animation: kz-in .4s cubic-bezier(.3, 1.3, .5, 1) both; }
+.draft-top { display: flex; justify-content: space-between; align-items: center; }
+.draft-n { font-size: 13px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; color: var(--sky-ink); }
+.draft-top .icon-btn { width: 36px; height: 36px; }
+.add-row { margin-top: 14px; width: 100%; height: 48px; border: 2px dashed var(--line-2); border-radius: 12px; background: transparent; color: var(--sky-ink); font-weight: 700; font-size: 15px; cursor: pointer; transition: border-color .2s, background .2s; }
+.add-row:hover { border-color: var(--sky-ink); background: #EEF6FF; }
+.add-row span { font-size: 18px; margin-right: 4px; }

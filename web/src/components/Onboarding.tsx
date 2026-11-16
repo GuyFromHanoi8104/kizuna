@@ -6,7 +6,7 @@ import ProviderButtons from "@/components/ProviderButtons";
 import { signInWith } from "@/lib/accounts";
 import { saveProfile, uploadAvatar, type Profile } from "@/lib/profile";
 import { getSupabase } from "@/lib/supabase";
-import { COUNTRIES } from "@/lib/world";
+import CountrySelect from "@/components/CountrySelect";
 
 const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
@@ -109,17 +109,11 @@ export default function Onboarding({ existingUserId, onDone }: { existingUserId?
             <div className="grid2">
               <div>
                 <label className="field-label" htmlFor="ob-from">Where you’re from <b>*</b></label>
-                <select id="ob-from" className="input" value={from} onChange={(e) => setFrom(e.target.value)}>
-                  <option value="">Choose a country</option>
-                  {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
-                </select>
+                <CountrySelect id="ob-from" value={from} onChange={setFrom} />
               </div>
               <div>
                 <label className="field-label" htmlFor="ob-live">Where you live now <b>*</b></label>
-                <select id="ob-live" className="input" value={live} onChange={(e) => setLive(e.target.value)}>
-                  <option value="">Choose a country</option>
-                  {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
-                </select>
+                <CountrySelect id="ob-live" value={live} onChange={setLive} />
               </div>
             </div>
           </>

@@ -1,9 +1,9 @@
 "use client";
 
 import { useRef, useState } from "react";
+import CountrySelect from "@/components/CountrySelect";
 import Avatar from "@/components/Avatar";
 import { removeOldAvatars, saveProfile, uploadAvatar, type Profile } from "@/lib/profile";
-import { COUNTRIES } from "@/lib/world";
 
 type Props = {
   userId: string;
@@ -108,17 +108,11 @@ export default function ProfileForm({ userId, initial, onSaved, onCancel }: Prop
         </div>
         <div>
           <label className="field-label" htmlFor="p-from">Where you’re from <b>*</b></label>
-          <select id="p-from" className="input" value={from} onChange={(e) => setFrom(e.target.value)}>
-            <option value="">Choose a country</option>
-            {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
-          </select>
+          <CountrySelect id="p-from" value={from} onChange={setFrom} />
         </div>
         <div>
           <label className="field-label" htmlFor="p-live">Where you live <b>*</b></label>
-          <select id="p-live" className="input" value={live} onChange={(e) => setLive(e.target.value)}>
-            <option value="">Choose a country</option>
-            {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
-          </select>
+          <CountrySelect id="p-live" value={live} onChange={setLive} />
         </div>
         <div>
           <label className="field-label" htmlFor="p-phone">Phone <em>(optional)</em></label>

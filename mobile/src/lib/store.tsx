@@ -17,7 +17,7 @@ type Store = {
   error: string;
   view: View;
   setView: (v: View) => void;
-  add: (c: NewConnection) => Promise<Connection>;
+  add: (c: NewConnection[]) => Promise<Connection[]>;
   remove: (id: string) => Promise<void>;
   refresh: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -88,12 +88,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     };
   }, [userId]);
 
-  const add = useCallback(async (c: NewConnection) => {
-    const { data, error } = await supabase.from('connections').insert(c).select(COLUMNS).single();
+  const add = useCallback(async (c: NewConnection[]) => {
+    const { data, error } = await supabase.from('connections').insert(c).select(COLUMNS);
     if (error) throw new Error(error.message);
-    const row = data as Connection;
-    setPeople((p) => [...p, row]);
-    return row;
+    const rows = (data ?? []) as Connection[];
+    setPeople((p) => [...p, ...rows]);
+    return rows;
   }, []);
 
   const remove = useCallback(async (id: string) => {

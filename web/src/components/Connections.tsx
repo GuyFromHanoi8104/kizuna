@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Avatar, { DefaultAvatar } from "@/components/Avatar";
+import CountrySelect from "@/components/CountrySelect";
 import ProfileForm from "@/components/ProfileForm";
 import ProviderButtons from "@/components/ProviderButtons";
 import type { User } from "@supabase/supabase-js";
@@ -14,6 +15,10 @@ import { HOW_MET, countsBy, placeOf, statsOf, type Connection, type HowMet, type
 import { useCountUp } from "@/lib/useCountUp";
 
 const COLUMNS = "id,name,from_country,lives_in,contact,how_met,created_at";
+
+type Draft = { key: number; name: string; other: string; contact: string };
+let draftKey = 0;
+const newDraft = (): Draft => ({ key: ++draftKey, name: "", other: "", contact: "" });
 
 /** A stat number that counts up and gives a little bump whenever it changes. */
 function Stat({ value, label, tone, delay }: { value: number; label: string; tone: string; delay: number }) {
@@ -67,11 +72,12 @@ export default function Connections({ user, profile, onProfile }: { user: User; 
   const [swap, setSwap] = useState(0);
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<"all" | "known">("all");
-  const [form, setForm] = useState({ name: "", other: "", contact: "", how: "Uni" as HowMet });
+  const [drafts, setDrafts] = useState<Draft[]>(() => [newDraft()]);
+  const [how, setHow] = useState<HowMet>("Uni");
   const [hint, setHint] = useState<{ text: string; kind: "ok" | "err" } | null>(null);
   const [shakeName, setShakeName] = useState(0);
   const [saving, setSaving] = useState(false);
-  const [lastAdded, setLastAdded] = useState<string | null>(null);
+  const [lastAdded, setLastAdded] = useState<Set<string>>(() => new Set());
   const [removing, setRemoving] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
 
@@ -116,7 +122,7 @@ export default function Connections({ user, profile, onProfile }: { user: User; 
     setView(v);
     setSwap((s) => s + 1);
     setHint(null);
-    setForm((f) => ({ ...f, other: "" }));
+    setDrafts((r) => r.map((d) => ({ ...d, other: "" })));
   };
 
   const fillOf = useCallback(
@@ -136,30 +142,36 @@ export default function Connections({ user, profile, onProfile }: { user: User; 
   const here = people.filter((p) => placeOf(p, view) === sel);
   const n = here.length;
 
+  const editRow = (key: number, patch: Partial<Draft>) => {
+    setDrafts((r) => r.map((d) => (d.key === key ? { ...d, ...patch } : d)));
+    setHint(null);
+  };
+
   async function save(e: React.FormEvent) {
     e.preventDefault();
-    const name = form.name.trim();
-    if (!name) {
-      setShakeName((s) => s + 1);
-      return setHint({ text: "Add a name first.", kind: "err" });
+    // Rows left completely empty are ignored; a row with details but no name is an error.
+    const filled = drafts.filter((d) => d.name.trim() || d.contact.trim() || d.other);
+    if (!filled.length || filled.some((d) => !d.name.trim())) {
+      setShakeName((x) => x + 1);
+      return setHint({ text: filled.length > 1 ? "Every person needs a name." : "Add a name first.", kind: "err" });
     }
-    if (live && !form.other) return setHint({ text: "Pick where they are from.", kind: "err" });
+    if (live && filled.some((d) => !d.other)) return setHint({ text: "Pick where each person is from.", kind: "err" });
     setSaving(true);
-    const row = {
-      name,
-      from_country: live ? form.other : sel,
-      lives_in: (live ? sel : form.other) || null,
-      contact: form.contact.trim() || null,
-      how_met: form.how,
-    };
-    const { data, error } = await supabase.from("connections").insert(row).select(COLUMNS).single();
+    const insert = filled.map((d) => ({
+      name: d.name.trim(),
+      from_country: live ? d.other : sel,
+      lives_in: (live ? sel : d.other) || null,
+      contact: d.contact.trim() || null,
+      how_met: how,
+    }));
+    const { data, error } = await supabase.from("connections").insert(insert).select(COLUMNS);
     setSaving(false);
     if (error) return setHint({ text: `Couldn’t save: ${error.message}`, kind: "err" });
-    const added = data as Connection;
-    setPeople((p) => [...p, added]);
-    setLastAdded(added.id);
-    setForm((f) => ({ name: "", other: "", contact: "", how: f.how }));
-    setHint({ text: `Saved ${added.name}.`, kind: "ok" });
+    const added = (data ?? []) as Connection[];
+    setPeople((p) => [...p, ...added]);
+    setLastAdded(new Set(added.map((x) => x.id)));
+    setDrafts([newDraft()]);
+    setHint({ text: added.length === 1 ? `Saved ${added[0].name}.` : `Saved ${added.length} people.`, kind: "ok" });
   }
 
   async function remove(c: Connection) {
@@ -298,7 +310,7 @@ export default function Connections({ user, profile, onProfile }: { user: User; 
               </div>
               <div className="people">
                 {here.map((p) => (
-                  <div key={p.id} className={`person${p.id === removing ? " gone" : p.id === lastAdded ? " new" : ""}`}>
+                  <div key={p.id} className={`person${p.id === removing ? " gone" : lastAdded.has(p.id) ? " new" : ""}`}>
                     <DefaultAvatar seed={p.id} size={44} />
                     <div className="person-main">
                       <div className="person-name">{p.name}</div>
@@ -322,42 +334,61 @@ export default function Connections({ user, profile, onProfile }: { user: User; 
           </div>
 
           <form className="card form" onSubmit={save} noValidate>
-            <h3>{live ? `Add someone who lives in ${selCountry.name}` : `Add someone from ${selCountry.name}`}</h3>
+            <h3>{live ? `Add people who live in ${selCountry.name}` : `Add people from ${selCountry.name}`}</h3>
             <p className="form-note">{live ? "Name and where they are from are required." : "Only name and country are required."}</p>
-            <div className="grid2">
-              <div>
-                <label className="field-label" htmlFor="name">Name <b>*</b></label>
-                <input
-                  key={shakeName}
-                  id="name"
-                  className={`input${shakeName ? " shake" : ""}`}
-                  placeholder="Their name"
-                  value={form.name}
-                  maxLength={120}
-                  onChange={(e) => { setForm({ ...form, name: e.target.value }); setHint(null); }}
-                />
-              </div>
-              <div>
-                <label className="field-label" htmlFor="other">
-                  {live ? <>From <b>*</b></> : <>Lives in <em>(optional)</em></>}
-                </label>
-                <select id="other" className="input" value={form.other} onChange={(e) => { setForm({ ...form, other: e.target.value }); setHint(null); }}>
-                  <option value="">{live ? "Choose a country" : "Same as home / not sure"}</option>
-                  {COUNTRIES.map((c) => (
-                    <option key={c.code} value={c.code}>{c.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="field-label" htmlFor="contact">Phone or social <em>(optional)</em></label>
-                <input id="contact" className="input" placeholder="+49 … or @handle" value={form.contact} maxLength={200} onChange={(e) => setForm({ ...form, contact: e.target.value })} />
-              </div>
+            <div className="drafts">
+              {drafts.map((d, i) => (
+                <div key={d.key} className={`draft${drafts.length > 1 ? " multi" : ""}`}>
+                  {drafts.length > 1 ? (
+                    <div className="draft-top">
+                      <span className="draft-n">Person {i + 1}</span>
+                      <button type="button" className="icon-btn" aria-label={`Remove person ${i + 1}`} onClick={() => setDrafts((r) => r.filter((x) => x.key !== d.key))}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+                      </button>
+                    </div>
+                  ) : null}
+                  <div className="grid2" style={{ marginTop: drafts.length > 1 ? 8 : 18 }}>
+                    <div>
+                      <label className="field-label" htmlFor={`name-${d.key}`}>Name <b>*</b></label>
+                      <input
+                        key={`${d.key}-${shakeName}`}
+                        id={`name-${d.key}`}
+                        className={`input${shakeName && !d.name.trim() ? " shake" : ""}`}
+                        placeholder="Their name"
+                        value={d.name}
+                        maxLength={120}
+                        autoFocus={i > 0 && i === drafts.length - 1 && !d.name}
+                        onChange={(e) => editRow(d.key, { name: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="field-label" htmlFor={`other-${d.key}`}>
+                        {live ? <>From <b>*</b></> : <>Lives in <em>(optional)</em></>}
+                      </label>
+                      <CountrySelect
+                        id={`other-${d.key}`}
+                        value={d.other}
+                        onChange={(c) => editRow(d.key, { other: c })}
+                        placeholder={live ? "Type a country" : "Same as home / not sure"}
+                        emptyLabel={live ? undefined : "Same as home / not sure"}
+                      />
+                    </div>
+                    <div>
+                      <label className="field-label" htmlFor={`contact-${d.key}`}>Phone or social <em>(optional)</em></label>
+                      <input id={`contact-${d.key}`} className="input" placeholder="+49 … or @handle" value={d.contact} maxLength={200} onChange={(e) => editRow(d.key, { contact: e.target.value })} />
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
+            <button type="button" className="add-row" onClick={() => setDrafts((r) => [...r, newDraft()])}>
+              <span aria-hidden="true">+</span> Add another person {live ? `living in ${selCountry.name}` : `from ${selCountry.name}`}
+            </button>
             <fieldset className="fieldset">
-              <legend>How did you meet?</legend>
+              <legend>{drafts.length > 1 ? "How did you meet them?" : "How did you meet?"}</legend>
               <div className="chips">
                 {HOW_MET.map((h) => (
-                  <button key={h} type="button" className="chip" aria-pressed={form.how === h} onClick={() => setForm({ ...form, how: h })}>
+                  <button key={h} type="button" className="chip" aria-pressed={how === h} onClick={() => setHow(h)}>
                     {h}
                   </button>
                 ))}
@@ -365,7 +396,7 @@ export default function Connections({ user, profile, onProfile }: { user: User; 
             </fieldset>
             <div className="form-foot">
               <button className="btn btn-red btn-sm" disabled={saving}>
-                {saving ? <span className="spinner" aria-label="Saving" /> : "Save connection"}
+                {saving ? <span className="spinner" aria-label="Saving" /> : drafts.length > 1 ? `Save ${drafts.length} people` : "Save connection"}
               </button>
               {hint && (
                 <span key={hint.text} className={`hint ${hint.kind}`} role="status">

@@ -14,6 +14,10 @@ import { useStore } from '@/lib/store';
 import { C, EASE, F, TAG_COLORS } from '@/lib/theme';
 import { BY_CODE, CONTINENTS, countryName } from '@/lib/world';
 
+type Draft = { key: number; name: string; other: string; contact: string };
+let draftKey = 0;
+const newDraft = (): Draft => ({ key: ++draftKey, name: '', other: '', contact: '' });
+
 function PersonRow({ p, live, onRemove }: { p: Connection; live: boolean; onRemove: (p: Connection) => void }) {
   const sub =
     [live ? `From ${countryName(p.from_country)}` : p.lives_in && p.lives_in !== p.from_country ? `Lives in ${countryName(p.lives_in)}` : '', p.contact]
@@ -45,9 +49,7 @@ export default function CountryScreen() {
   const { people, view, setView, add, remove } = useStore();
   const live = view === 'live';
 
-  const [name, setName] = useState('');
-  const [other, setOther] = useState('');
-  const [contact, setContact] = useState('');
+  const [drafts, setDrafts] = useState<Draft[]>(() => [newDraft()]);
   const [how, setHow] = useState<HowMet>('Uni');
   const [saving, setSaving] = useState(false);
   const [hint, setHint] = useState<{ text: string; ok: boolean } | null>(null);
@@ -60,32 +62,38 @@ export default function CountryScreen() {
 
   const switchView = (v: ViewMode) => {
     setView(v);
-    setOther('');
+    setDrafts((r) => r.map((d) => ({ ...d, other: '' })));
+    setHint(null);
+  };
+
+  const editDraft = (key: number, patch: Partial<Draft>) => {
+    setDrafts((r) => r.map((d) => (d.key === key ? { ...d, ...patch } : d)));
     setHint(null);
   };
 
   const save = async () => {
-    const nm = name.trim();
-    if (!nm) {
+    // Completely empty rows are ignored; a row with details but no name is an error.
+    const filled = drafts.filter((d) => d.name.trim() || d.contact.trim() || d.other);
+    if (!filled.length || filled.some((d) => !d.name.trim())) {
       shake.set(withSequence(withTiming(-8, { duration: 50 }), withTiming(8, { duration: 70 }), withTiming(-5, { duration: 60 }), withTiming(0, { duration: 50 })));
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
-      return setHint({ text: 'Add a name first.', ok: false });
+      return setHint({ text: filled.length > 1 ? 'Every person needs a name.' : 'Add a name first.', ok: false });
     }
-    if (live && !other) return setHint({ text: 'Pick where they are from.', ok: false });
+    if (live && filled.some((d) => !d.other)) return setHint({ text: 'Pick where each person is from.', ok: false });
     setSaving(true);
     try {
-      const row = await add({
-        name: nm,
-        from_country: live ? other : code,
-        lives_in: (live ? code : other) || null,
-        contact: contact.trim() || null,
-        how_met: how,
-      });
+      const rows = await add(
+        filled.map((d) => ({
+          name: d.name.trim(),
+          from_country: live ? d.other : code,
+          lives_in: (live ? code : d.other) || null,
+          contact: d.contact.trim() || null,
+          how_met: how,
+        })),
+      );
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-      setName('');
-      setOther('');
-      setContact('');
-      setHint({ text: `Saved ${row.name}.`, ok: true });
+      setDrafts([newDraft()]);
+      setHint({ text: rows.length === 1 ? `Saved ${rows[0].name}.` : `Saved ${rows.length} people.`, ok: true });
     } catch (e) {
       setHint({ text: `Couldn’t save: ${(e as Error).message}`, ok: false });
     } finally {
@@ -155,23 +163,38 @@ export default function CountryScreen() {
 
           <Animated.View entering={enter(3)} layout={LinearTransition.duration(250)} style={[ui.card, { gap: 16 }]}>
             <View>
-              <Text style={s.formTitle}>{live ? `Add someone who lives in ${country.name}` : `Add someone from ${country.name}`}</Text>
+              <Text style={s.formTitle}>{live ? `Add people who live in ${country.name}` : `Add people from ${country.name}`}</Text>
               <Text style={[ui.sub, { fontSize: 14 }]}>{live ? 'Name and where they are from are required.' : 'Only name and country are required.'}</Text>
             </View>
-            <Animated.View style={shakeStyle}>
-              <Field label="Name" required value={name} onChangeText={(t) => { setName(t); setHint(null); }} placeholder="Their name" maxLength={120} autoCapitalize="words" />
-            </Animated.View>
-            <CountryPicker
-              label={live ? 'From' : 'Lives in'}
-              required={live}
-              hint={live ? undefined : '(optional)'}
-              value={other}
-              onChange={(c) => { setOther(c); setHint(null); }}
-              placeholder={live ? 'Choose a country' : 'Same as home / not sure'}
-            />
-            <Field label="Phone or social" hint="(optional)" value={contact} onChangeText={setContact} placeholder="+49 … or @handle" maxLength={200} autoCapitalize="none" />
+            {drafts.map((d, i) => (
+              <Animated.View key={d.key} entering={i > 0 ? ZoomIn.springify().damping(14) : undefined} exiting={FadeOutRight.duration(200)} layout={LinearTransition.duration(250)} style={[{ gap: 14 }, drafts.length > 1 && s.draft]}>
+                {drafts.length > 1 ? (
+                  <View style={s.draftTop}>
+                    <Text style={s.draftN}>Person {i + 1}</Text>
+                    <Pressable accessibilityRole="button" accessibilityLabel={`Remove person ${i + 1}`} hitSlop={10} onPress={() => setDrafts((r) => r.filter((x) => x.key !== d.key))}>
+                      <Text style={s.draftX}>✕</Text>
+                    </Pressable>
+                  </View>
+                ) : null}
+                <Animated.View style={!d.name.trim() ? shakeStyle : undefined}>
+                  <Field label="Name" required value={d.name} onChangeText={(t) => editDraft(d.key, { name: t })} placeholder="Their name" maxLength={120} autoCapitalize="words" autoFocus={i > 0 && !d.name} />
+                </Animated.View>
+                <CountryPicker
+                  label={live ? 'From' : 'Lives in'}
+                  required={live}
+                  hint={live ? undefined : '(optional)'}
+                  value={d.other}
+                  onChange={(c) => editDraft(d.key, { other: c })}
+                  placeholder={live ? 'Choose a country' : 'Same as home / not sure'}
+                />
+                <Field label="Phone or social" hint="(optional)" value={d.contact} onChangeText={(t) => editDraft(d.key, { contact: t })} placeholder="+49 … or @handle" maxLength={200} autoCapitalize="none" />
+              </Animated.View>
+            ))}
+            <PressScale onPress={() => setDrafts((r) => [...r, newDraft()])} label="Add another person" style={s.addRow}>
+              <Text style={s.addRowText}>+ Add another person</Text>
+            </PressScale>
             <View style={{ gap: 8 }}>
-              <Text style={ui.label}>How did you meet?</Text>
+              <Text style={ui.label}>{drafts.length > 1 ? 'How did you meet them?' : 'How did you meet?'}</Text>
               <View style={s.chips}>
                 {HOW_MET.map((h) => {
                   const on = how === h;
@@ -183,7 +206,7 @@ export default function CountryScreen() {
                 })}
               </View>
             </View>
-            <Button title="Save connection" onPress={save} busy={saving} />
+            <Button title={drafts.length > 1 ? `Save ${drafts.length} people` : 'Save connection'} onPress={save} busy={saving} />
             {hint ? (
               <Animated.Text key={hint.text} entering={FadeInDown.duration(300)} style={[s.hint, { color: hint.ok ? C.skyInk : C.redInk }]} accessibilityLiveRegion="polite">
                 {hint.text}
@@ -211,6 +234,12 @@ const s = StyleSheet.create({
   trash: { width: 36, height: 44, alignItems: 'center', justifyContent: 'center' },
   empty: { padding: 24, borderRadius: 16, borderWidth: 2, borderStyle: 'dashed', borderColor: C.line2 },
   emptyText: { fontFamily: F.regular, fontSize: 15, color: C.ink2, textAlign: 'center', lineHeight: 22 },
+  draft: { padding: 14, borderRadius: 16, borderWidth: 1.5, borderColor: C.line, backgroundColor: C.bg },
+  draftTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  draftN: { fontFamily: F.heavy, fontSize: 12, letterSpacing: 0.6, color: C.skyInk, textTransform: 'uppercase' },
+  draftX: { fontFamily: F.bold, fontSize: 16, color: C.ink3 },
+  addRow: { height: 48, borderRadius: 12, borderWidth: 2, borderStyle: 'dashed', borderColor: C.line2, alignItems: 'center', justifyContent: 'center' },
+  addRowText: { fontFamily: F.bold, fontSize: 15, color: C.skyInk },
   formTitle: { fontFamily: F.heavy, fontSize: 19, color: C.ink, marginBottom: 4 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { height: 44, paddingHorizontal: 16, borderRadius: 999, borderWidth: 1.5, borderColor: C.line2, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
