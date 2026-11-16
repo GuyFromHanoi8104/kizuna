@@ -80,6 +80,9 @@ export default function Connections({ user, profile, onProfile }: { user: User; 
   const [lastAdded, setLastAdded] = useState<Set<string>>(() => new Set());
   const [removing, setRemoving] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   // Load connections
   useEffect(() => {
@@ -186,12 +189,18 @@ export default function Connections({ user, profile, onProfile }: { user: User; 
     setPeople((p) => p.filter((x) => x.id !== c.id));
   }
 
+  // In-page confirmation (no browser pop-ups: some mobile browsers block window.confirm).
   async function deleteAccount() {
-    if (!window.confirm("Delete your Kizuna account and all your saved connections? This can’t be undone.")) return;
+    setDeleteError("");
+    setDeleting(true);
     await removeOldAvatars(profile.id).catch(() => {});
     const { error } = await supabase.rpc("delete_my_account");
-    if (error) return window.alert(`Couldn’t delete account: ${error.message}`);
-    await supabase.auth.signOut();
+    if (error) {
+      setDeleting(false);
+      return setDeleteError(`Couldn’t delete your account: ${error.message}`);
+    }
+    // The account is gone on the server; clear this browser's session too.
+    await supabase.auth.signOut({ scope: "local" });
   }
 
   const subOf = (p: Connection) =>
@@ -427,7 +436,20 @@ export default function Connections({ user, profile, onProfile }: { user: User; 
             <button type="button" className="link-btn" onClick={() => supabase.auth.signOut()}>Sign out</button>
           </div>
         )}
-        <button type="button" className="link-btn danger" onClick={deleteAccount}>Delete account</button>
+        {confirmDelete ? (
+          <div className="confirm-del" role="alertdialog" aria-labelledby="del-title">
+            <p id="del-title"><strong>Delete your Kizuna account?</strong> This permanently erases your profile and all {people.length} saved {people.length === 1 ? "connection" : "connections"}. It can’t be undone.</p>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+              <button type="button" className="btn btn-red btn-sm" onClick={deleteAccount} disabled={deleting}>
+                {deleting ? <span className="spinner" aria-label="Deleting" /> : "Yes, delete everything"}
+              </button>
+              <button type="button" className="link-btn" onClick={() => { setConfirmDelete(false); setDeleteError(""); }} disabled={deleting}>Cancel</button>
+            </div>
+            {deleteError ? <p className="hint err" role="alert">{deleteError}</p> : null}
+          </div>
+        ) : (
+          <button type="button" className="link-btn danger" onClick={() => setConfirmDelete(true)}>Delete account</button>
+        )}
       </div>
     </>
   );
