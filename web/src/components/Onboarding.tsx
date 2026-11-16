@@ -3,7 +3,6 @@
 import { useRef, useState } from "react";
 import Avatar from "@/components/Avatar";
 import ProviderButtons from "@/components/ProviderButtons";
-import { signInWith } from "@/lib/accounts";
 import { saveProfile, uploadAvatar, type Profile } from "@/lib/profile";
 import { getSupabase } from "@/lib/supabase";
 import CountrySelect from "@/components/CountrySelect";
@@ -185,7 +184,7 @@ export default function Onboarding({ existingUserId, onDone }: { existingUserId?
       {step === 1 && !existingUserId ? (
         <div className="ob-signin">
           <p>Already use Kizuna on another device?</p>
-          <ProviderButtons verb="Sign in" onPick={signInWith} />
+          <ProviderButtons mode="signin" />
         </div>
       ) : null}
     </div>

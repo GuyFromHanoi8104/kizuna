@@ -6,7 +6,7 @@ import CountrySelect from "@/components/CountrySelect";
 import ProfileForm from "@/components/ProfileForm";
 import ProviderButtons from "@/components/ProviderButtons";
 import type { User } from "@supabase/supabase-js";
-import { PROVIDER_NAME, linkProvider, linkedProviders } from "@/lib/accounts";
+import { PROVIDER_NAME, linkedProviders } from "@/lib/accounts";
 import WorldMap from "@/components/WorldMap";
 import { removeOldAvatars, type Profile } from "@/lib/profile";
 import { getSupabase } from "@/lib/supabase";
@@ -423,7 +423,7 @@ export default function Connections({ user, profile, onProfile }: { user: User; 
             <h3>Use Kizuna on your other devices</h3>
             <p>Right now your map lives only in this browser. Connect Apple or Google to open the same map on your phone, laptop or anywhere else. Nothing you’ve saved changes.</p>
           </div>
-          <ProviderButtons onPick={linkProvider} />
+          <ProviderButtons mode="link" />
         </section>
       ) : null}
 

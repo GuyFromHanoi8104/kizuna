@@ -21,6 +21,12 @@ export async function signInWith(provider: Provider) {
 export const linkedProviders = (user: User | null | undefined): Provider[] =>
   (user?.identities ?? []).map((i) => i.provider).filter((p): p is Provider => p === "apple" || p === "google");
 
+export function friendlyAuthError(msg: string) {
+  return /already.*linked|identity.*exists|already.*registered/i.test(msg)
+    ? "That account is already connected to another Kizuna map. To open that map here, delete this guest map first, then sign in with it."
+    : msg;
+}
+
 /** Reads an error Supabase put in the URL after an Apple/Google redirect, then cleans the URL. */
 export function takeRedirectError(): string {
   if (typeof window === "undefined") return "";
@@ -29,9 +35,5 @@ export function takeRedirectError(): string {
   const raw = params.get("error_description") || hash.get("error_description") || "";
   if (!raw) return "";
   window.history.replaceState(null, "", window.location.pathname);
-  const msg = raw.replace(/\+/g, " ");
-  if (/already.*linked|identity.*exists|already.*registered/i.test(msg)) {
-    return "That account is already connected to another Kizuna map. To open that map here, delete this guest map first, then sign in with it.";
-  }
-  return msg;
+  return friendlyAuthError(raw.replace(/\+/g, " "));
 }
