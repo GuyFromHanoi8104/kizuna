@@ -143,6 +143,27 @@ export default function Connections({ user, profile, onProfile }: { user: User; 
 
   const selCountry = BY_CODE[sel] ?? { code: sel, name: sel, cont: "" };
   const here = people.filter((p) => placeOf(p, view) === sel);
+
+  // "All connections": everyone, grouped by country (biggest groups first), searchable.
+  const [allQ, setAllQ] = useState("");
+  const detailRef = useRef<HTMLElement>(null);
+  const groups = useMemo(() => {
+    const t = allQ.trim().toLowerCase();
+    const map = new Map<string, Connection[]>();
+    for (const p of people) {
+      const c = placeOf(p, view);
+      const hay = `${p.name} ${p.contact ?? ""} ${countryName(p.from_country)} ${countryName(p.lives_in)} ${p.how_met}`.toLowerCase();
+      if (t && !hay.includes(t)) continue;
+      map.set(c, [...(map.get(c) ?? []), p]);
+    }
+    return [...map.entries()]
+      .map(([code, list]) => ({ code, name: countryName(code), list: [...list].sort((a, b) => a.name.localeCompare(b.name)) }))
+      .sort((a, b) => b.list.length - a.list.length || a.name.localeCompare(b.name));
+  }, [people, view, allQ]);
+  const openCountry = (code: string) => {
+    pick(code);
+    detailRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
   const n = here.length;
 
   const editRow = (key: number, patch: Partial<Draft>) => {
@@ -305,7 +326,7 @@ export default function Connections({ user, profile, onProfile }: { user: User; 
           </div>
         </section>
 
-        <section className="detail-col a" style={{ animationDelay: "640ms" }} aria-label="Selected country">
+        <section ref={detailRef} className="detail-col a" style={{ animationDelay: "640ms", scrollMarginTop: 16 }} aria-label="Selected country">
           <div className="card detail">
             <div key={swap} className="swap">
               <div className="detail-head">
@@ -416,6 +437,48 @@ export default function Connections({ user, profile, onProfile }: { user: User; 
           </form>
         </section>
       </div>
+
+      <section className="card all a" style={{ animationDelay: "700ms" }} aria-label="All connections">
+        <div className="all-top">
+          <div>
+            <h2>All connections <span className="all-count">{people.length}</span></h2>
+            <p>{live ? "Grouped by where they live." : "Grouped by where they’re from."} Tap a person to open their country.</p>
+          </div>
+          <div style={{ flex: "0 1 300px" }}>
+            <label className="sr-only" htmlFor="all-search">Search all connections</label>
+            <input id="all-search" className="input" type="search" placeholder="Search names, countries, handles" value={allQ} onChange={(e) => setAllQ(e.target.value)} />
+          </div>
+        </div>
+        {people.length === 0 ? (
+          <p className="empty-note">No connections yet. Pick a country above and add your first one.</p>
+        ) : groups.length === 0 ? (
+          <p className="empty-note">No one matches “{allQ}”.</p>
+        ) : (
+          <div className="all-groups">
+            {groups.map((g, gi) => (
+              <div key={g.code} className="all-group" style={{ animationDelay: `${Math.min(gi, 8) * 50}ms` }}>
+                <button type="button" className="all-head" onClick={() => openCountry(g.code)}>
+                  <span className="code known">{g.code}</span>
+                  <span className="all-name">{g.name}</span>
+                  <span className="all-n">{g.list.length}</span>
+                </button>
+                <div className="all-people">
+                  {g.list.map((p) => (
+                    <button key={p.id} type="button" className="all-person" onClick={() => openCountry(g.code)}>
+                      <DefaultAvatar seed={p.id} size={36} />
+                      <span className="all-pmain">
+                        <span className="all-pname">{p.name}</span>
+                        <span className="all-psub">{subOf(p)}</span>
+                      </span>
+                      <span className={`tag tag-${p.how_met.split(" ")[0]}`}>{p.how_met}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
       {isGuest ? (
         <section className="card sync a" style={{ animationDelay: "720ms" }} aria-label="Use Kizuna on other devices">

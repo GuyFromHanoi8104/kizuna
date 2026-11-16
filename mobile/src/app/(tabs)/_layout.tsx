@@ -13,6 +13,10 @@ export default function TabsLayout() {
         <NativeTabs.Trigger.Label>Countries</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="list.bullet" md="list" />
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="people">
+        <NativeTabs.Trigger.Label>People</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf={{ default: 'person.2', selected: 'person.2.fill' }} md="group" />
+      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="account">
         <NativeTabs.Trigger.Label>Account</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf={{ default: 'person.crop.circle', selected: 'person.crop.circle.fill' }} md="account_circle" />
